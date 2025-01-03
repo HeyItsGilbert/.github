@@ -1,0 +1,51 @@
+name: Publish Module
+on:
+  push:
+    branches: [ $default-branch ]
+  workflow_dispatch:
+  workflow_call:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      # Get the current version
+      - uses: actions/checkout@v4
+      - name: Install and cache PowerShell modules
+        id: cacheBuildHelpers
+        uses: potatoqualitee/psmodulecache@v4.5
+        with:
+          modules-to-cache: BuildHelpers
+      - name: Install and cache PSDepend
+        id: psdepend
+        uses: potatoqualitee/psmodulecache@v6.0
+        with:
+          modules-to-cache: PSDepend:0.3.8
+      - name: Determine modules to cache
+        shell: pwsh
+        id: modules-to-cache
+        run: |
+          $dependancies = Get-Dependency
+          $f = $dependancies | ?{ $_.DependencyType -eq 'PSGalleryModule' } | %{ "{0}:{1}" -F $_.DependencyName, $_.Version}
+          Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
+      - name: Install and cache PowerShell modules
+        id: psmodulecache
+        uses: potatoqualitee/psmodulecache@v6.0
+        with:
+          modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
+          shell: pwsh
+      - shell: pwsh
+        # Give an id to the step, so we can reference it later
+        id: check_if_versions_bumped
+        run: |
+          [version]$GalleryVersion = Get-NextNugetPackageVersion -Name Log4NetParse -ErrorAction Stop
+          [version]$GithubVersion = Get-MetaData -Path ./Log4NetParse/Log4NetParse.psd1 -PropertyName ModuleVersion -ErrorAction Stop
+          $bumped = $GithubVersion -ge $GalleryVersion
+
+          # Set the output named "version_bumped"
+          Write-Host "::set-output name=version_bumped::$bumped"
+      - name: Publish to PSGallery
+        shell: pwsh
+        if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PS_GALLERY_KEY }}
+        run: ./build.ps1 -Task Publish -Bootstrap
