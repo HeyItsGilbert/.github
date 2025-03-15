@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install and cache PSDepend
         id: psdepend
-        uses: potatoqualitee/psmodulecache@v6.0
+        uses: potatoqualitee/psmodulecache@v6.2.1
         with:
           modules-to-cache: PSDepend:0.3.8, BuildHelpers
       - shell: pwsh
