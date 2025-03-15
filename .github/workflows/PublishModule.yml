@@ -5,7 +5,8 @@ on:
   workflow_dispatch:
   workflow_call:
 jobs:
-  build:
+  publish:
+    name: Publish Module
     runs-on: windows-latest
     steps:
       # Get the current version
@@ -16,6 +17,7 @@ jobs:
         with:
           modules-to-cache: PSDepend:0.3.8, BuildHelpers
       - shell: pwsh
+        name: Check if this version is already published
         # Give an id to the step, so we can reference it later
         id: check_if_versions_bumped
         run: |
