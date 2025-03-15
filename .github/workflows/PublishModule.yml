@@ -46,4 +46,4 @@ jobs:
         if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
         env:
           PSGALLERY_API_KEY: ${{ secrets.PS_GALLERY_KEY }}
-        run: ./build.ps1 -Task Publish -Bootstrap
+        run: ./build.ps1 -Task Publish
