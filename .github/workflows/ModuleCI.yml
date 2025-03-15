@@ -38,7 +38,7 @@ jobs:
         shell: pwsh
     - name: Test
       shell: pwsh
-      run: ./build.ps1 -Task Test -Bootstrap
+      run: ./build.ps1 -Task Test
     - name: Upload Unit Test Results
       if: always()
       uses: actions/upload-artifact@v4
