@@ -1,7 +1,8 @@
 name: Publish docs via GitHub Pages
 on:
    workflow_call:
-
+permissions:
+  contents: write
 jobs:
   build:
     name: Deploy docs
