@@ -36,7 +36,7 @@ jobs:
           Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
       - name: Install and cache PowerShell modules
         id: psmodulecache
-        uses: potatoqualitee/psmodulecache@v6.0
+        uses: potatoqualitee/psmodulecache@v6.2.1
         if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
         with:
           modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
