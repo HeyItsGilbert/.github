@@ -9,6 +9,12 @@ permissions:
   checks: write
   pull-requests: write
 jobs:
+  spellcheck:
+    name: Check Spelling
+    runs-on: [ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: streetsidesoftware/cspell-action@v6
   test:
     name: Run Tests
     runs-on: ${{ matrix.os }}
