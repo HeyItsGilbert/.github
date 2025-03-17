@@ -26,7 +26,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v4
-    - uses: streetsidesoftware/cspell-action@v6
     - name: Install and cache PSDepend
       id: psdepend
       uses: potatoqualitee/psmodulecache@v6.2.1
