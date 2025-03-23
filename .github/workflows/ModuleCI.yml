@@ -17,6 +17,8 @@ jobs:
     - uses: streetsidesoftware/cspell-action@v6
       with:
         strict: false
+        suggestions: true
+        incremental_files_only: true
   test:
     name: Run Tests
     runs-on: ${{ matrix.os }}
