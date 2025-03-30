@@ -19,7 +19,7 @@ jobs:
         strict: false
         suggestions: true
         incremental_files_only: true
-    - uses: reviewdog/action-alex@1.16.0
+    - uses: reviewdog/action-alex@v1.16.0
       with:
         github_token: ${{ secrets.github_token }}
         # Change reviewdog reporter if you need [github-pr-check,github-check,github-pr-review].
