@@ -43,24 +43,26 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v4
-    - name: Install and cache PSDepend
-      id: psdepend
-      uses: potatoqualitee/psmodulecache@v6.2.1
-      with:
-        modules-to-cache: PSDepend:0.3.8
-    - name: Determine modules to cache
-      shell: pwsh
-      id: modules-to-cache
-      run: |
-        $dependancies = Get-Dependency
-        $f = $dependancies | ?{ $_.DependencyType -eq 'PSGalleryModule' } | %{ "{0}:{1}" -F $_.DependencyName, $_.Version}
-        Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
-    - name: Install and cache PowerShell modules
-      id: psmodulecache
-      uses: potatoqualitee/psmodulecache@v6.2.1
-      with:
-        modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
-        shell: pwsh
+    # Caching doesn't seem to be working. Commenting out for now.
+    # Maybe replace with modulefast.
+    #- name: Install and cache PSDepend
+    #  id: psdepend
+    #  uses: potatoqualitee/psmodulecache@v6.2.1
+    #  with:
+    #    modules-to-cache: PSDepend:0.3.8
+    #- name: Determine modules to cache
+    #  shell: pwsh
+    #  id: modules-to-cache
+    #  run: |
+    #    $dependancies = Get-Dependency
+    #    $f = $dependancies | ?{ $_.DependencyType -eq 'PSGalleryModule' } | %{ "{0}:{1}" -F $_.DependencyName, $_.Version}
+    #    Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
+    #- name: Install and cache PowerShell modules
+    #  id: psmodulecache
+    #  uses: potatoqualitee/psmodulecache@v6.2.1
+    #  with:
+    #    modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
+    #    shell: pwsh
     - name: Test
       shell: pwsh
       run: ./build.ps1 -Task Test
