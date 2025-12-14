@@ -28,24 +28,9 @@ jobs:
 
           # Set the output named "version_bumped"
           Write-Host "::set-output name=version_bumped::$bumped"
-      - name: Determine modules to cache
-        shell: pwsh
-        id: modules-to-cache
-        if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
-        run: |
-          $dependancies = Get-Dependency
-          $f = $dependancies | ?{ $_.DependencyType -eq 'PSGalleryModule' } | %{ "{0}:{1}" -F $_.DependencyName, $_.Version}
-          Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
-      - name: Install and cache PowerShell modules
-        id: psmodulecache
-        uses: potatoqualitee/psmodulecache@v6.2.1
-        if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
-        with:
-          modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
-          shell: pwsh
       - name: Publish to PSGallery
         shell: pwsh
         if: steps.check_if_versions_bumped.outputs.version_bumped == 'True'
         env:
           PSGALLERY_API_KEY: ${{ secrets.PS_GALLERY_KEY }}
-        run: ./build.ps1 -Task Publish
+        run: ./build.ps1 -Task Publish -Bootstrap
