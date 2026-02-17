@@ -1,6 +1,12 @@
 name: Publish docs via GitHub Pages
 on:
-   workflow_call:
+  workflow_call:
+    inputs:
+      additional_copies:
+        description: "Additional files/folders to copy (format: source:destination, one per line)"
+        required: false
+        type: string
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -30,9 +36,44 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item README.md docs/index.md
+      - name: Copy additional files
+        if: inputs.additional_copies != ''
+        shell: pwsh
+        run: |
+          $copies = @'
+          ${{ inputs.additional_copies }}
+          '@
+
+          $copies -split "`n" | ForEach-Object {
+            $line = $_.Trim()
+            if ($line -and $line -notmatch '^#') {
+              $parts = $line -split ':', 2
+              if ($parts.Length -eq 2) {
+                $source = $parts[0].Trim()
+                $dest = $parts[1].Trim()
+                
+                if (Test-Path $source) {
+                  Write-Host "Copying $source to $dest"
+                  
+                  # Create destination directory if it doesn't exist
+                  $destDir = Split-Path -Parent $dest
+                  if ($destDir -and !(Test-Path $destDir)) {
+                    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                  }
+                  
+                  # Copy the file or directory
+                  Copy-Item -Path $source -Destination $dest -Recurse -Force
+                } else {
+                  Write-Warning "Source path not found: $source"
+                }
+              } else {
+                Write-Warning "Invalid copy format (expected 'source:destination'): $line"
+              }
+            }
+          }
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
-        if: steps.check_file_changed.outputs.docs_changed == 'True' || ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ steps.check_file_changed.outputs.docs_changed == 'True' || github.event_name == 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUIREMENTS: docs/requirements.txt
