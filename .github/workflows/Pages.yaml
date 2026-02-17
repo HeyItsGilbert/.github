@@ -27,6 +27,29 @@ jobs:
 
           # Check if a file under docs/ or with the .md extension has changed (added, modified, deleted)
           $SourceDiff = $diff | Where-Object { $_ -match '^docs/' -or $_ -match '.md$' }
+          
+          # Also check for changes in additional copy sources
+          $additionalCopies = @'
+          ${{ inputs.additional_copies }}
+          '@
+          
+          if ($additionalCopies.Trim()) {
+            $additionalCopies -split "`n" | ForEach-Object {
+              $line = $_.Trim()
+              if ($line -and $line -notmatch '^#') {
+                $parts = $line -split ':', 2
+                if ($parts.Length -eq 2) {
+                  $source = $parts[0].Trim()
+                  # Check if this source file/folder has changed
+                  $additionalDiff = $diff | Where-Object { $_ -match "^$([regex]::Escape($source))" }
+                  if ($additionalDiff) {
+                    $SourceDiff += $additionalDiff
+                  }
+                }
+              }
+            }
+          }
+          
           $HasDiff = $SourceDiff.Length -gt 0
 
           # Set the output named "docs_changed"
