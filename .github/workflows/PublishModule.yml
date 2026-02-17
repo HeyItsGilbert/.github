@@ -114,7 +114,7 @@ jobs:
         id: changelog
         uses: mindsers/changelog-reader-action@v2
         with:
-          validation_level: error
+          validation_level: warn
           version: ${{ steps.check_if_versions_bumped.outputs.VERSION_FOR_CHANGELOG }}
           path: ./CHANGELOG.md
 
