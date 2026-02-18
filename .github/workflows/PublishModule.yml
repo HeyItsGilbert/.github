@@ -108,29 +108,6 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "BUMPED=$bumped" -Confirm:$false -Encoding UTF8
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "MODULE_NAME=$env:BHProjectName" -Confirm:$false -Encoding UTF8
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "NEW_VERSION=$($moduleSplat.RequiredVersion)" -Confirm:$false -Encoding UTF8
-          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "VERSION_FOR_CHANGELOG=$versionForChangelog" -Confirm:$false -Encoding UTF8
-
-      - name: Read and validate changelog (keepachangelog)
-        id: changelog
-        uses: mindsers/changelog-reader-action@v2
-        with:
-          validation_level: warn
-          version: ${{ steps.check_if_versions_bumped.outputs.VERSION_FOR_CHANGELOG }}
-          path: ./CHANGELOG.md
-
-      - name: Write Release Notes
-        shell: pwsh
-        env:
-          CHANGES: ${{ steps.changelog.outputs.changes }}
-        run: |
-          $env:CHANGES | Out-File -FilePath "$env:GITHUB_WORKSPACE/RELEASE_NOTES.md" -Encoding UTF8 -NoNewline
-
-      - name: Upload Release Notes
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-notes
-          path: RELEASE_NOTES.md
-          retention-days: 1
 
   git_tag:
     name: Tag Release
@@ -167,18 +144,21 @@ jobs:
       - git_tag
     steps:
       - uses: actions/checkout@v4
-      - name: Download Release Notes
-        uses: actions/download-artifact@v4
+      - name: Read and validate changelog (keepachangelog)
+        id: changelog
+        uses: mindsers/changelog-reader-action@v2
         with:
-          name: release-notes
+          validation_level: warn
+          version: ${{ needs.check_version.outputs.new_version }}
+          path: ./CHANGELOG.md
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.check_version.outputs.new_version }}
-          name: ${{ needs.check_version.outputs.new_version }}
-          body_path: RELEASE_NOTES.md
-          draft: false
-          prerelease: ${{ inputs.isPrerelease || false }}
+          name: Release ${{ steps.changelog.outputs.version }}
+          body: ${{ steps.changelog.outputs.changes }}
+          prerelease: ${{ steps.changelog.outputs.status == 'prereleased' }}
+          draft: ${{ steps.changelog.outputs.status == 'unreleased' }}
 
   publish:
     name: Publish Module
