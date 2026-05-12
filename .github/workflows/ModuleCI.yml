@@ -28,7 +28,7 @@ jobs:
       uses: reviewdog/action-suggester@v1.21.0
       with:
         tool_name: 'PSScriptAnalyzer'
-  test:
+  test_pwsh:
     name: Run Tests
     runs-on: ${{ matrix.os }}
     strategy:
@@ -37,26 +37,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v4
-    # Caching doesn't seem to be working. Commenting out for now.
-    # Maybe replace with modulefast.
-    #- name: Install and cache PSDepend
-    #  id: psdepend
-    #  uses: potatoqualitee/psmodulecache@v6.2.1
-    #  with:
-    #    modules-to-cache: PSDepend:0.3.8
-    #- name: Determine modules to cache
-    #  shell: pwsh
-    #  id: modules-to-cache
-    #  run: |
-    #    $dependancies = Get-Dependency
-    #    $f = $dependancies | ?{ $_.DependencyType -eq 'PSGalleryModule' } | %{ "{0}:{1}" -F $_.DependencyName, $_.Version}
-    #    Write-Output "::set-output name=ModulesToCache::$($f -join ', ')"
-    #- name: Install and cache PowerShell modules
-    #  id: psmodulecache
-    #  uses: potatoqualitee/psmodulecache@v6.2.1
-    #  with:
-    #    modules-to-cache: ${{ steps.modules-to-cache.outputs.ModulesToCache }}
-    #    shell: pwsh
     - name: Test
       shell: pwsh
       run: ./build.ps1 -Task Test -Bootstrap
@@ -66,9 +46,25 @@ jobs:
       with:
         name: Unit Test Results (OS ${{ matrix.os }})
         path: ./tests/out/testResults.xml
+  test_powershell:
+    name: Run Tests
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test
+      shell: powershell
+      run: ./build.ps1 -Task Test -Bootstrap
+    - name: Upload Unit Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Unit Test Results (OS Windows PowerShell 5.1)
+        path: ./tests/out/testResults.xml
   publish-test-results:
     name: "Publish Unit Tests Results"
-    needs: test
+    needs:
+      - test_pwsh
+      - test_powershell
     runs-on: ubuntu-latest
     # the test job might be skipped, we don't need to run this job then
     if: success() || failure()
