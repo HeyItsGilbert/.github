@@ -47,7 +47,7 @@ jobs:
         name: Unit Test Results (OS ${{ matrix.os }})
         path: ./tests/out/testResults.xml
   test_powershell:
-    name: Run Tests
+    name: Run Tests (PowerShell 5.1)
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
