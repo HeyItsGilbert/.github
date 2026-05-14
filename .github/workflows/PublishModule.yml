@@ -25,6 +25,16 @@ on:
         description: "If true, skip actual publishing and just validate the workflow logic."
         required: false
         default: false
+      create_release:
+        type: boolean
+        description: "If false, skip creating the GitHub release and tag."
+        required: false
+        default: true
+      publish:
+        type: boolean
+        description: "If false, skip publishing to PowerShell Gallery."
+        required: false
+        default: true
     secrets:
       PS_GALLERY_KEY:
         description: "The API key for publishing to the PowerShell Gallery."
@@ -109,39 +119,12 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "MODULE_NAME=$env:BHProjectName" -Confirm:$false -Encoding UTF8
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "NEW_VERSION=$($moduleSplat.RequiredVersion)" -Confirm:$false -Encoding UTF8
 
-  git_tag:
-    name: Tag Release
-    runs-on: ubuntu-latest
-    needs: check_version
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Create Git Tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.check_version.outputs.new_version }}
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-          # Remove existing tag if present to maintain consistency
-          if git rev-parse "$VERSION" >/dev/null 2>&1; then
-            echo "Tag $VERSION already exists. Deleting and recreating."
-            git tag -d "$VERSION"
-            git push origin :refs/tags/"$VERSION" 2>/dev/null || true
-          fi
-
-          echo "Creating tag $VERSION"
-          git tag -a "$VERSION" -m "$VERSION"
-          git push origin "$VERSION"
-
   create_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
       - check_version
-      - git_tag
+    if: needs.check_version.outputs.version_bumped == 'True' && inputs.create_release
     steps:
       - uses: actions/checkout@v4
       - name: Read and validate changelog (keepachangelog)
@@ -165,8 +148,7 @@ jobs:
     runs-on: windows-latest
     needs:
       - check_version
-      - git_tag
-    if: needs.check_version.outputs.version_bumped == 'True'
+    if: needs.check_version.outputs.version_bumped == 'True' && inputs.publish
     steps:
       - uses: actions/checkout@v4
       - name: Publish to PSGallery
