@@ -15,11 +15,11 @@ on:
         description: "The version to publish. Leave empty to use the version in the module manifest."
         required: false
         type: string
-      isPrerelease:
-        description: "Is this a prerelease version?"
+      force:
+        type: boolean
+        description: "If true, bypass the PSGallery version existence check. Use when re-triggering a failed publish job (pattern: force=true, create_release=false, publish=true)."
         required: false
         default: false
-        type: boolean
       dry_run:
         type: boolean
         description: "If true, skip actual publishing and just validate the workflow logic."
@@ -62,42 +62,38 @@ jobs:
         run: |
           Import-Module BuildHelpers
           Set-BuildEnvironment -Force
-          [version]$githubVersion = Get-MetaData -Path $env:BHPSModuleManifest -PropertyName 'ModuleVersion' -ErrorAction 'Stop'
-          Write-Host "Current Version: $githubVersion"
+
+          [version]$manifestVersion = Get-MetaData -Path $env:BHPSModuleManifest -PropertyName 'ModuleVersion' -ErrorAction 'Stop'
+          $PSData = Get-MetaData -Path $env:BHPSModuleManifest -PropertyName PrivateData.PSData -ErrorAction 'Stop'
+          $prereleaseSuffix = $PSData.Prerelease
+
+          Write-Host "Manifest Version: $manifestVersion"
+          Write-Host "Manifest Prerelease: $prereleaseSuffix"
 
           # Override version if specified as input
           if (-not [String]::IsNullOrEmpty('${{ inputs.version }}')) {
-            # Split version and prerelease suffix if present
-            if('${{ inputs.version }}' -match '^(?<version>\d+\.\d+\.\d+)(-(?<prerelease>.+))?$') {
-              $githubVersion = [version]$matches['version']
-              if ($matches['prerelease']) {
-                $prereleaseSuffix = $matches['prerelease']
-              }
+            if ('${{ inputs.version }}' -match '^(?<version>\d+\.\d+\.\d+)(-(?<prerelease>.+))?$') {
+              $manifestVersion = [version]$matches['version']
+              $prereleaseSuffix = $matches['prerelease']  # null if no suffix = stable release
+              Write-Host "Version override: $manifestVersion, Prerelease override: $prereleaseSuffix"
             } else {
               Write-Warning "Invalid version format: '${{ inputs.version }}'. Expected format: '1.2.3' or '1.2.3-beta'"
             }
-            Write-Host "Module version was specified in workflow: $githubVersion"
-            Update-MetaData -Path $env:BHPSModuleManifest -PropertyName ModuleVersion -Value $githubVersion -ErrorAction 'Stop'
+            Update-MetaData -Path $env:BHPSModuleManifest -PropertyName ModuleVersion -Value $manifestVersion -ErrorAction 'Stop'
           }
 
-          $moduleSplat = @{
-            Name = $env:BHProjectName
-          }
+          $moduleSplat = @{ Name = $env:BHProjectName }
 
-          # Handle pre-release versions
-          $isPrerelease = '${{ inputs.isPrerelease }}' -eq 'true'
-          Write-Host "Prerelease: $isPrerelease"
-          if ($isPrerelease) {
-            $PSData = Get-MetaData -Path $env:BHPSModuleManifest -PropertyName PrivateData.PSData -ErrorAction 'Stop'
+          if (-not [String]::IsNullOrEmpty($prereleaseSuffix)) {
             $moduleSplat['AllowPrerelease'] = $true
-            $moduleSplat['RequiredVersion'] = "$githubVersion-$($PSData.Prerelease)"
+            $moduleSplat['RequiredVersion'] = "$manifestVersion-$prereleaseSuffix"
           } else {
             $moduleSplat['AllowPrerelease'] = $false
-            $moduleSplat['RequiredVersion'] = $githubVersion
+            $moduleSplat['RequiredVersion'] = "$manifestVersion"
           }
+
           Write-Host "Version to Publish: $($moduleSplat.RequiredVersion)"
 
-          # Check if exact version exists in PSGallery
           try {
             $existingModule = Find-Module @moduleSplat -ErrorAction Stop
             $bumped = $false
@@ -112,9 +108,6 @@ jobs:
             }
           }
 
-          # Strip prerelease suffix for changelog lookup
-          $versionForChangelog = "$($moduleSplat.RequiredVersion)" -replace '-.*$', ''
-
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "BUMPED=$bumped" -Confirm:$false -Encoding UTF8
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "MODULE_NAME=$env:BHProjectName" -Confirm:$false -Encoding UTF8
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "NEW_VERSION=$($moduleSplat.RequiredVersion)" -Confirm:$false -Encoding UTF8
@@ -124,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - check_version
-    if: needs.check_version.outputs.version_bumped == 'True' && inputs.create_release
+    if: (needs.check_version.outputs.version_bumped == 'True' || inputs.force) && inputs.create_release
     steps:
       - uses: actions/checkout@v4
       - name: Read and validate changelog (keepachangelog)
@@ -148,7 +141,7 @@ jobs:
     runs-on: windows-latest
     needs:
       - check_version
-    if: needs.check_version.outputs.version_bumped == 'True' && inputs.publish
+    if: (needs.check_version.outputs.version_bumped == 'True' || inputs.force) && inputs.publish
     steps:
       - uses: actions/checkout@v4
       - name: Publish to PSGallery
