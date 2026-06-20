@@ -1,7 +1,17 @@
 name: CI
 on:
   workflow_dispatch:
+    inputs:
+      skipWindowsPowerShell:
+        description: 'Skip Windows PowerShell 5.1 tests (use for pwsh 7-only modules)'
+        type: boolean
+        default: false
   workflow_call:
+    inputs:
+      skipWindowsPowerShell:
+        description: 'Skip Windows PowerShell 5.1 tests (use for pwsh 7-only modules)'
+        type: boolean
+        default: false
 permissions:
   checks: write
   pull-requests: write
@@ -46,6 +56,7 @@ jobs:
   test_powershell:
     name: Run Tests (PowerShell 5.1)
     runs-on: windows-latest
+    if: ${{ !inputs.skipWindowsPowerShell }}
     steps:
     - uses: actions/checkout@v6
     - name: Test
