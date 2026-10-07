@@ -7,6 +7,8 @@ on:
         required: false
         type: string
         default: ""
+env:
+  DEBUG: ${{ runner.debug == '1' }}
 permissions:
   contents: write
 jobs:
@@ -20,11 +22,19 @@ jobs:
       - name: Copy readme
         shell: pwsh
         run: |
+          if ($env:DEBUG -eq 'true') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           Copy-Item README.md docs/index.md
       - name: Copy additional files
         if: inputs.additional_copies != ''
         shell: pwsh
         run: |
+          if ($env:DEBUG -eq 'true') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           $copies = @'
           ${{ inputs.additional_copies }}
           '@

@@ -39,6 +39,8 @@ on:
       PS_GALLERY_KEY:
         description: "The API key for publishing to the PowerShell Gallery."
         required: true
+env:
+  DEBUG: ${{ runner.debug == '1' }}
 
 jobs:
   check_version:
@@ -54,12 +56,21 @@ jobs:
 
       - name: Bootstrap
         shell: pwsh
-        run: ./build.ps1 -Task 'Init' -Bootstrap
+        run: |
+          if ($env:DEBUG -eq 'true') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
+          ./build.ps1 -Task 'Init' -Bootstrap
 
       - name: Check if version is already published
         id: check_if_versions_bumped
         shell: pwsh
         run: |
+          if ($env:DEBUG -eq 'true') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           Import-Module BuildHelpers
           Set-BuildEnvironment -Force
 
@@ -152,6 +163,10 @@ jobs:
           VERSION: ${{ needs.check_version.outputs.new_version }}
           DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
+          if ($env:DEBUG -eq 'true') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           if ($env:DRY_RUN -eq 'true') {
             Write-Host "DRY RUN: Would publish module to PSGallery"
             Write-Host "Module: $env:PACKAGE"
