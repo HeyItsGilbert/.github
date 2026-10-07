@@ -39,8 +39,6 @@ on:
       PS_GALLERY_KEY:
         description: "The API key for publishing to the PowerShell Gallery."
         required: true
-env:
-  DEBUG: ${{ runner.debug == '1' }}
 
 jobs:
   check_version:
@@ -57,7 +55,7 @@ jobs:
       - name: Bootstrap
         shell: pwsh
         run: |
-          if ($env:DEBUG -eq 'true') {
+          if ($env:RUNNER_DEBUG -eq '1') {
             $DebugPreference = 'Continue'
             $VerbosePreference = 'Continue'
           }
@@ -67,7 +65,7 @@ jobs:
         id: check_if_versions_bumped
         shell: pwsh
         run: |
-          if ($env:DEBUG -eq 'true') {
+          if ($env:RUNNER_DEBUG -eq '1') {
             $DebugPreference = 'Continue'
             $VerbosePreference = 'Continue'
           }
@@ -163,7 +161,7 @@ jobs:
           VERSION: ${{ needs.check_version.outputs.new_version }}
           DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
-          if ($env:DEBUG -eq 'true') {
+          if ($env:RUNNER_DEBUG -eq '1') {
             $DebugPreference = 'Continue'
             $VerbosePreference = 'Continue'
           }

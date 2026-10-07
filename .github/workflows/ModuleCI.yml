@@ -12,8 +12,6 @@ on:
         description: 'Skip Windows PowerShell 5.1 tests (use for pwsh 7-only modules)'
         type: boolean
         default: false
-env:
-  DEBUG: ${{ runner.debug == '1' }}
 permissions:
   checks: write
   pull-requests: write
@@ -33,7 +31,7 @@ jobs:
     - shell: pwsh
       name: Apply PSScriptAnalyzer Fixes
       run: |
-        if ($env:DEBUG -eq 'true') {
+        if ($env:RUNNER_DEBUG -eq '1') {
           $DebugPreference = 'Continue'
           $VerbosePreference = 'Continue'
         }
@@ -54,7 +52,7 @@ jobs:
     - name: Test
       shell: pwsh
       run: |
-        if ($env:DEBUG -eq 'true') {
+        if ($env:RUNNER_DEBUG -eq '1') {
           $DebugPreference = 'Continue'
           $VerbosePreference = 'Continue'
         }
@@ -74,7 +72,7 @@ jobs:
     - name: Test
       shell: powershell
       run: |
-        if ($env:DEBUG -eq 'true') {
+        if ($env:RUNNER_DEBUG -eq '1') {
           $DebugPreference = 'Continue'
           $VerbosePreference = 'Continue'
         }
