@@ -20,11 +20,19 @@ jobs:
       - name: Copy readme
         shell: pwsh
         run: |
+          if ($env:RUNNER_DEBUG -eq '1') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           Copy-Item README.md docs/index.md
       - name: Copy additional files
         if: inputs.additional_copies != ''
         shell: pwsh
         run: |
+          if ($env:RUNNER_DEBUG -eq '1') {
+            $DebugPreference = 'Continue'
+            $VerbosePreference = 'Continue'
+          }
           $copies = @'
           ${{ inputs.additional_copies }}
           '@
